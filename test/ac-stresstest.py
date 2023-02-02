@@ -5,6 +5,7 @@ import argparse
 import requests
 import sys
 import numpy as np
+import time
 
 
 achost = None
@@ -13,8 +14,10 @@ timeout = 300
 def oneid(unid,phrange,vlist):
 	for v in vlist:
 		for ph in np.arange(*phrange):
+			before = time.time()
 			res = oneshot(unid,ph,v)
-			print(unid,ph,v,res)
+			after = time.time()
+			print(unid,ph,v,res,after-before)
 
 def perr(*args,**kwargs):
 	print(*args,file=sys.stderr,**kwargs)
