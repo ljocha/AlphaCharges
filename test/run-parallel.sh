@@ -17,6 +17,11 @@ ids="$1"
 lines=$(wc -l "$ids" | cut -d' ' -f1)
 chunk=$(($lines / $par))
 
+if [ -f $ids.out ]; then
+	echo $ids.out exists, back it up or remove first
+	exit 1
+fi
+
 line=0
 p=0
 while read id; do
@@ -37,3 +42,11 @@ for p in $(seq 1 $par); do
 done
 
 wait
+
+rm -f $ids.out
+for p in $(seq 1 $par); do
+	part=$ids-part$(printf %03d $p)
+	cat $part.out >>$ids.out
+	rm $part.out
+done
+
