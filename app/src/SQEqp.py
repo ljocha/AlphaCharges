@@ -9,6 +9,7 @@ from numba.core import types
 from numba.typed import Dict
 import json
 import scipy
+import sys
 
 
 def calculate_charges(molecule,impl='orig'):
@@ -38,6 +39,9 @@ def calculate_charges(molecule,impl='orig'):
     return charges[:molecule.calculated_atoms]
 
 
+def mynan(name,x):
+	print(name,x.shape,np.any(np.isnan(x)),file=sys.stderr)
+
 # @jit(nopython=False, cache=True)
 def new_sqeqp_calculate(bonds,
                     precalc_bond_hardnesses,
@@ -53,7 +57,6 @@ def new_sqeqp_calculate(bonds,
     num_of_ats = len(coordinates)
     num_of_bonds = len(bonds)
     T = np.zeros((num_of_bonds, num_of_ats), dtype=np.float64)
-    matrix = np.empty((num_of_ats, num_of_ats), dtype=np.float64)
 
 #    for i,(a1, a2, _) in enumerate(bonds):
 #        T[i, a1] += 1
@@ -66,6 +69,7 @@ def new_sqeqp_calculate(bonds,
 #    matrix[np.diag_indices(num_of_ats)] = hardnesses[i]
     baux = np.broadcast_to(radiuses,(num_of_ats,num_of_ats))
     d0 = np.sqrt(baux + baux.T)
+
 
     d2 = np.resize(coordinates,(num_of_ats,num_of_ats,3))
 #    d2 = np.empty((num_of_ats,num_of_ats,3))
@@ -106,19 +110,19 @@ def triang_sqeqp_calculate(bonds,
                     total_chg,
                     precalc_params):
     # this method is the same for both SQEqp and SQEqps
-    electronegativities = precalc_params[:, 0]
-    hardnesses = precalc_params[:, 1]
-    radiuses = precalc_params[:, 2]
-    initial_charges = precalc_params[:, 3]
+    electronegativities = precalc_params[:, 0].astype(np.float32)
+    hardnesses = precalc_params[:, 1].astype(np.float32)
+    radiuses = precalc_params[:, 2].astype(np.float32)
+    initial_charges = precalc_params[:, 3].astype(np.float32)
 
     num_of_ats = len(coordinates)
     num_of_bonds = len(bonds)
-    T = np.zeros((num_of_bonds, num_of_ats), dtype=np.float64)
-    matrix = np.empty((num_of_ats, num_of_ats), dtype=np.float64)
+    T = np.zeros((num_of_bonds, num_of_ats), dtype=np.float32)
+    matrix = np.zeros((num_of_ats, num_of_ats), dtype=np.float32)
 
     bidx = np.arange(num_of_bonds)
-    T[(bidx,bonds[:,0])] = 1
-    T[(bidx,bonds[:,1])] = -1
+    T[(bidx,bonds[:,0])] = 1.0
+    T[(bidx,bonds[:,1])] = -1.0
     
     idx = np.triu_indices(num_of_ats,k=1)
 
@@ -126,21 +130,31 @@ def triang_sqeqp_calculate(bonds,
 #    d0 = np.sqrt(baux + baux.T)
     d0 = np.sqrt((baux + baux.T)[idx])
 
+    #mynan('d0',d0)
+
     d2 = np.resize(coordinates,(num_of_ats,num_of_ats,3))
 #    d2 = d2 - np.swapaxes(d2,0,1)
     d2 = (d2 - np.swapaxes(d2,0,1))[idx[0],idx[1],:]
 
 #    distances = np.linalg.norm(d2,axis=2)
     distances = np.linalg.norm(d2,axis=1)
+    #mynan('distances',distances)
 
 #    matrix = scipy.special.erf(distances/d0)/distances
    
     uf = scipy.special.erf(distances/d0)/distances
-    matrix = np.zeros((num_of_ats,num_of_ats))
+    #print('uf:',len(uf),list(uf),file=sys.stderr)
+    #print('atoms',num_of_ats,file=sys.stderr)
+    #mynan('uf',uf)
+
+    #mynan('matrix0',matrix)
+    #print('idx',idx[0].shape,file=sys.stderr)
     np.put(matrix,idx[0]*num_of_ats+idx[1],uf)
     matrix += matrix.T
+    #mynan('matrix',matrix)
 
     matrix[np.diag_indices(num_of_ats)] = hardnesses
+    #mynan('matrix2',matrix)
 
     initial_charges -= (np.sum(initial_charges) - total_chg) / len(initial_charges)
     A_sqe = np.dot(T, np.dot(matrix, T.T))
