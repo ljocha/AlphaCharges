@@ -9,6 +9,7 @@ import time
 
 
 achost = None
+extra = ''
 timeout = 300
 
 def oneid(unid,phrange,vlist):
@@ -24,7 +25,7 @@ def perr(*args,**kwargs):
 
 def oneshot(unid,ph,v):
 	try:
-		r = requests.get(f"{achost}/calculate_charges/{unid}?ph={ph}&alphafold_prediction_version={v}",timeout=timeout) 
+		r = requests.get(f"{achost}/calculate_charges/{unid}?ph={ph}&alphafold_prediction_version={v}{extra}",timeout=timeout) 
 		if r.status_code != 200:
 			perr(r.json())
 			return f'HTTP_{r.status_code}'
@@ -66,9 +67,11 @@ if __name__ == '__main__':
 	p.add_argument('-v','--versions',help='Comma separated list of Alpha Fold prediction versions',default='3,4',required=False)
 	p.add_argument('-p','--phrange',help='Range of pH to try as MIN,MAX,STEP',default='6.0,8.1,1',required=False)
 	p.add_argument('-s','--server',help='URL prefix of the server',default='http://147.251.115.173/',required=False)
+	p.add_argument('-e','--extra',help='additional suffix to calcualte_charges URL',default='',required=False)
 
 	a = p.parse_args()
 	achost = a.server
+	extra = a.extra
 
 	phrange = list(map(float,a.phrange.split(',')))
 	vlist = tuple(map(int,a.versions.split(',')))

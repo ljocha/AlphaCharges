@@ -2,6 +2,7 @@ FROM ubuntu:22.04
 
 RUN apt update -y && apt upgrade -y
 RUN apt-get --yes install python3-pip python3-venv apache2 libapache2-mod-wsgi-py3 gemmi
+RUN apt install -y vim
 
 WORKDIR /opt
 RUN python3 -m venv venv
@@ -23,7 +24,9 @@ RUN a2enmod ssl
 RUN a2enmod brotli
 RUN a2enmod http2
 
-RUN apt install -y vim
 
 # sudo systemctl restart apache2
+EXPOSE 80
+EXPOSE 443
 
+ENTRYPOINT apachectl -D FOREGROUND

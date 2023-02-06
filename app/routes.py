@@ -211,7 +211,7 @@ class Calculation:
         self.molecule.create_submolecules()
         self.logs.add_log(f'Submolecules created. ({round(time() - s, 2)}s)')
 
-    def calculate_charges(self):
+    def calculate_charges(self,impl='orig'):
         self.logs.add_log('Calculation of partial atomic charges...')
         s = time()
 
@@ -221,7 +221,7 @@ class Calculation:
         # all_charges = [chg for chgs in all_charges for chg in chgs]
         all_charges = []
         for substructure in self.molecule.substructures:
-            all_charges.extend(SQEqp.calculate_charges(substructure))
+            all_charges.extend(SQEqp.calculate_charges(substructure,impl))
         all_charges -= (sum(all_charges) - self.molecule.total_chg) / len(all_charges)
         charges = all_charges
 
@@ -394,7 +394,7 @@ def calculate_charges(code: str):
     empirical_method = 'SQEqp'
     message_dict = {'UniProt code': code,
                     'empirical method': empirical_method}
-    allowed_url_arguments = set(['ph', 'alphafold_prediction_version'])
+    allowed_url_arguments = set(['ph', 'alphafold_prediction_version', 'profile', 'impl' ])
     if not set(request.args.keys()).issubset(allowed_url_arguments):
         message_dict.update({'status': 'failed',
                              'error message': 'Only URL arguments "ph" and "alphafold_prediction_version" are allowed.'})
@@ -442,7 +442,7 @@ def calculate_charges(code: str):
                 return jsonify(message_dict), 501
             calculation.precalculate_parameters()
             calculation.create_submolecules()
-            calculation.calculate_charges()
+            calculation.calculate_charges(request.args.get('impl'))
     message_dict.update({'status': 'partial atomic charges successfully calculated',
                          'ID': ID})
     return jsonify(message_dict)
