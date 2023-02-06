@@ -4,10 +4,12 @@ versions=3,4
 phrange=6,8.1,1
 par=1
 
-while getopts hv:p:n: OPT; do case $OPT in
+
+while getopts hv:p:n:s: OPT; do case $OPT in
 	v) versions="$OPTARG" ;; 
 	p) phrange="$OPTARG" ;;
 	n) par=$OPTARG;;
+	s) server="-s $OPTARG" ;;
 	h|?) echo usage: $0 [-v versions] [-p phrange] [-n parallel] idsfile >&2 ; exit 1;;
 esac; done
 
@@ -36,12 +38,15 @@ done <$ids
 
 dir=$(dirname $0)
 
+trap 'kill $(jobs -p); wait' EXIT
 for p in $(seq 1 $par); do
 	part=$ids-part$(printf %03d $p)
-	$dir/ac-stresstest.py -v "$versions" -p "$phrange" $part >$part.out 2>$part.err &
+	$dir/ac-stresstest.py $server -v "$versions" -p "$phrange" $part >$part.out 2>$part.err &
 done
 
 wait
+
+trap '' EXIT
 
 rm -f $ids.out
 for p in $(seq 1 $par); do

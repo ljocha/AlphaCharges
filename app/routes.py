@@ -375,8 +375,19 @@ def get_charges():
     return Response(open(f'{root_dir}/calculated_structures/{ID}/charges.txt', 'r').read(),
                     mimetype='text/plain')
 
+import cProfile
 
 @application.route('/calculate_charges/<string:code>')
+def calculate_charges_prof(code: str):
+    if request.args.get('profile'): 
+        with cProfile.Profile() as pr:
+            resp = calculate_charges(code)
+        pr.dump_stats(f"/tmp/{code}.prof")
+    else:
+        resp = calculate_charges(code)
+
+    return resp
+
 def calculate_charges(code: str):
     # API
     code = code.upper()  # alphacharges should be not case sensitive
