@@ -181,7 +181,7 @@ def orig32_sqeqp_calculate(bonds,
                     precalc_params):
     # this method is the same for both SQEqp and SQEqps
     coordinates = _coordinates.astype(np.float32)
-    electronegativities = precalc_params[:, 0]
+    electronegativities = precalc_params[:, 0].astype(np.float32)
     hardnesses = precalc_params[:, 1]
     radiuses = precalc_params[:, 2].astype(np.float32)
     initial_charges = precalc_params[:, 3].astype(np.float32)
